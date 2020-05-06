@@ -1,90 +1,95 @@
 pragma solidity >=0.4.18;
 
-
-// 声明其他合约的接口  -- 授权合约
-interface AdminContract{
-    function getAdminAddress()  external view returns(address);
-}
-
 contract User {
     // 定义用户数据结构
-    struct UserStruct {
+    struct User_Info {
         address userAddress;
         string username;
-        uint time;
-        uint index;
+        uint lastVoteTime;    // 最近一次投票时间
     }
 
-    // 定义用户列表数据结构
-    struct UserListStruct {
-        address userAddress;
-        uint index;
+    // 给其它投票项目投票的数据
+    struct Voted_Data{
+        address voteAddress;              // 投票合约地址
+        address ownerAddress;             // 发布投票者地址
+        bytes32[] candidateList;          // 候选人列表
+        uint[] myVoteForCandidate;        // 我给每位候选人的投票详情
     }
 
-    // 所有地址集合
-    address[] public userAddresses;
-    // 所有用户名集合
-    string[] public usernames;
-    // 账户个人信息
-    mapping(address => UserStruct) private userStruct;
-    // 用户名映射地址
-    mapping(string => UserListStruct) private userListStruct;
+    // 用户信息
+    User_Info  user;
+    // 所有的投票信息
+    Voted_Data[] public v_data;
 
-    // 管理员合约实例
-    AdminContract adminContract;
+    // 投票地址映射
+    mapping(address => Voted_Data) public votedData;
 
-    // 构造函数 -- 指定调用合约的地址
-    constructor(address _adminContractAddr) public{
-        adminContractAddr = _adminContractAddr;
-        adminContract = AdminContract(adminContractAddr);   // 通过地址拿到合约实例   --  将地址强制转换为合约
+    // 投票地址下标映射
+    mapping(address => uint) public index;
+
+    uint[] voteForCandidate;
+
+    // 构造函数 -- 指定用户的地址
+    constructor(address _userAddress, string memory _username) public{
+        user.userAddress = _userAddress;
+        user.username = _username;
+        user.lastVoteTime = 0;
     }
 
-    // 判断用户地址是否存在
-    function isExitUserAddress(address _userAddress) public view returns (bool) {
-        if (userAddresses.length == 0) return false;
-        return userAddresses[userStruct[_userAddress].index] == _userAddress;
-    }
-
-    // 判断用户名是否存在
-    function isExitUsername(string memory _username) public view returns (bool) {
-        if (usernames.length == 0) {
-            return false;
-        } else {
-            return keccak256(abi.encodePacked(usernames[userListStruct[_username].index])) == keccak256(abi.encodePacked(_username));
-        }
-    }
-
-    // 根据用户名查找对于的address
-    function findUserAddressByUsername(string memory _username) public view returns (address) {
-        require(isExitUsername(_username), "用户名不存在");
-        return userListStruct[_username].userAddress;
-    }
-
-    // 创建用户信息
-    function createUser(address _userAddress, string memory _username) public returns (uint index) {
-        assert(msg.sender == adminContract.getAdminAddress());
-        // 如果地址已存在则不允许再创建
-        require(!isExitUserAddress(_userAddress), "用户已经存在");
-
-        // 地址集合push新地址
-        userAddresses.push(_userAddress);
-        userStruct[_userAddress] = UserStruct(_userAddress, _username, block.timestamp, userAddresses.length - 1);
-
-        // 用户名集合push新用户
-        usernames.push(_username);
-        // 用户所对应的地址集合
-        userListStruct[_username] = UserListStruct(_userAddress, usernames.length - 1);
-
-        return userAddresses.length - 1;
+    // 函数修改器，判断是否为当前用户
+    modifier isOwner(){
+        require(msg.sender == user.userAddress, "没有权限");
+        _;
     }
 
     // 获取用户个人信息
-    function findUser(address _userAddress) public view returns (address userAddress, string memory username, uint time, uint index) {
-        require(isExitUserAddress(_userAddress), "用户地址不存在");
-        return (
-        userStruct[_userAddress].userAddress,
-        userStruct[_userAddress].username,
-        userStruct[_userAddress].time,
-        userStruct[_userAddress].index);
+    function getUserInfo() isOwner public view returns (address userAddress, string memory username, uint lastVoteTime) {
+        return (user.userAddress, user.username, user.lastVoteTime);
+    }
+
+    // 第一次投票
+    function firstVote(address _voteAddress, address _owner, bytes32[] memory _candidateList, bytes32 _candidate, uint _votes) isOwner public returns (bool isSuccess){
+        delete voteForCandidate;
+        for (uint i = 0; i < _candidateList.length; i++) {
+            if (_candidateList[i] == _candidate) {
+                voteForCandidate.push(_votes);
+            } else {
+                voteForCandidate.push(0);
+            }
+        }
+        Voted_Data memory vote = Voted_Data({
+            voteAddress : _voteAddress,
+            ownerAddress : _owner,
+            candidateList : _candidateList,
+            myVoteForCandidate : voteForCandidate
+            });
+        v_data.push(vote);
+        votedData[_voteAddress] = vote;
+        index[_voteAddress] = v_data.length - 1;
+        return true;
+    }
+
+    // 添加投票数据
+    function addVoteData(address _voteAddress, bytes32 _candidate, uint _votes) isOwner public returns (bool isSuccess){
+        bytes32[] memory candidateList = votedData[_voteAddress].candidateList;
+        uint candidateIndex = indexOfCandidate(_candidate, candidateList);
+        require(candidateIndex != -1, "候选人不存在");
+        votedData[_voteAddress].myVoteForCandidate[candidateIndex] += _votes;
+        v_data[index[_voteAddress]].myVoteForCandidate[candidateIndex] += _votes;
+        return true;
+    }
+
+    // 候选人下标
+    function indexOfCandidate(bytes32 candidate, bytes32[] memory _candidateList) public pure returns (uint _index) {
+        for(uint i = 0; i < _candidateList.length; i++) {
+            if (_candidateList[i] == candidate) {
+                return i;
+            }
+        }
+        return uint(-1);
+    }
+
+    function isVoted(address _voteAddress) public view returns (bool) {
+        return votedData[_voteAddress].myVoteForCandidate.length == 0;
     }
 }

@@ -1,3 +1,3 @@
 module.exports = {
-  secret: "healthchain2020"
+  secret: "votedapp2020"
 }
