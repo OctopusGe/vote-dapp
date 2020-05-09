@@ -8,7 +8,8 @@ var adminAddress = '0x83743cfff53699852d92298e67571c771b806d48';
 var adminContractAbi = adminContractArtifacts.abi;
 var adminContractAddress = adminContractArtifacts['networks']['999'].address;
 var userContractAbi = userContractArtifacts.abi;
-var userContractAddress = userContractArtifacts['networks']['999'].address;
+var userByteCode = userContractArtifacts.bytecode;
+//var userContractAddress = userContractArtifacts['networks']['999'].address;
 
 var voteContractAbi = votingContractArtifacts.abi;
 var voteByteCode = votingContractArtifacts.bytecode;
@@ -20,6 +21,6 @@ module.exports = {
   adminContractAddress,
   voteContractAbi,
   voteByteCode,
-  userContractAddress,
-  userContractAbi
+  userContractAbi,
+  userByteCode
 }

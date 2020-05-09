@@ -3,9 +3,12 @@ pragma solidity >=0.4.18;
 contract User {
     // 定义用户数据结构
     struct User_Info {
-        address userAddress;
-        string username;
-        uint lastVoteTime;    // 最近一次投票时间
+        address userAddress;           // 用户地址
+        uint voteCount;                // 投票次数
+        uint voteProject;              // 投票项目次数
+        uint myVoteCount;              // 发布投票的次数
+        uint lastVoteTime;             // 最近一次投票的时间
+        uint lastCreateVoteTime;       // 最近一次发布投票的时间
     }
 
     // 给其它投票项目投票的数据
@@ -18,22 +21,22 @@ contract User {
 
     // 用户信息
     User_Info  user;
-    // 所有的投票信息
-    Voted_Data[] public v_data;
+
+    address[] myVoteAddresses;
 
     // 投票地址映射
-    mapping(address => Voted_Data) public votedData;
-
-    // 投票地址下标映射
-    mapping(address => uint) public index;
+    mapping(address => Voted_Data) votedData;
 
     uint[] voteForCandidate;
 
     // 构造函数 -- 指定用户的地址
-    constructor(address _userAddress, string memory _username) public{
+    constructor(address _userAddress) public {
         user.userAddress = _userAddress;
-        user.username = _username;
+        user.voteCount = 0;
+        user.voteProject = 0;
+        user.myVoteCount = 0;
         user.lastVoteTime = 0;
+        user.lastCreateVoteTime = 0;
     }
 
     // 函数修改器，判断是否为当前用户
@@ -43,8 +46,9 @@ contract User {
     }
 
     // 获取用户个人信息
-    function getUserInfo() isOwner public view returns (address userAddress, string memory username, uint lastVoteTime) {
-        return (user.userAddress, user.username, user.lastVoteTime);
+    function getUserInfo(address call) public view returns (address userAddress, uint voteCount, uint voteProject, uint myVoteCount, uint lastVoteTime, uint lastCreateVoteTime) {
+        require(call == user.userAddress, "没有权限");
+        return (user.userAddress, user.voteCount, user.voteProject, user.myVoteCount, user.lastVoteTime, user.lastCreateVoteTime);
     }
 
     // 第一次投票
@@ -63,9 +67,14 @@ contract User {
             candidateList : _candidateList,
             myVoteForCandidate : voteForCandidate
             });
-        v_data.push(vote);
         votedData[_voteAddress] = vote;
-        index[_voteAddress] = v_data.length - 1;
+        user.lastVoteTime = block.timestamp;
+        user.voteProject += 1;
+        if (_owner == user.userAddress) {
+            myVoteAddresses.push(_voteAddress);
+            user.myVoteCount += 1;
+            user.lastCreateVoteTime = block.timestamp;
+        }
         return true;
     }
 
@@ -73,9 +82,10 @@ contract User {
     function addVoteData(address _voteAddress, bytes32 _candidate, uint _votes) isOwner public returns (bool isSuccess){
         bytes32[] memory candidateList = votedData[_voteAddress].candidateList;
         uint candidateIndex = indexOfCandidate(_candidate, candidateList);
-        require(candidateIndex != -1, "候选人不存在");
+        require(candidateIndex != uint(-1), "候选人不存在");
         votedData[_voteAddress].myVoteForCandidate[candidateIndex] += _votes;
-        v_data[index[_voteAddress]].myVoteForCandidate[candidateIndex] += _votes;
+        user.voteCount += 1;
+        user.lastVoteTime = block.timestamp;
         return true;
     }
 
@@ -89,7 +99,15 @@ contract User {
         return uint(-1);
     }
 
-    function isVoted(address _voteAddress) public view returns (bool) {
+    // 是否给投票合约投过票
+    function isVoted(address _userAddress, address _voteAddress) public view returns (bool _voted) {
+        require(user.userAddress == _userAddress, "没有权限");
         return votedData[_voteAddress].myVoteForCandidate.length == 0;
+    }
+
+    // 获取投票数据
+    function getVoteData(address _userAddress, address _voteAddress) public view returns (address voteAddress, address owner, bytes32[] memory candidateList, uint[] memory myVoteForCandidate) {
+        require(user.userAddress == _userAddress, "没有权限");
+        return (votedData[_voteAddress].voteAddress, votedData[_voteAddress].ownerAddress, votedData[_voteAddress].candidateList, votedData[_voteAddress].myVoteForCandidate);
     }
 }

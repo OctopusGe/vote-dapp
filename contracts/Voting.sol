@@ -21,17 +21,17 @@ contract Voting {
 		uint lastBoughtTokensTime;		   // 最近一次购买token时间
 	}
 	// 投票信息地址映射
-	mapping (address => Voter) public voterInfo;
+	mapping (address => Voter) voterInfo;
 	// 候选人票数映射
 	mapping (bytes32 => uint) votesReceived;
 
 	// 所有投票者的地址
-	address[] public voterAddresses;
+	address[] voterAddresses;
 
 	// 发布该投票的拥有者
 	address owner;
 	// 投票标题
-	string voteTitle;
+	string proposal;
 	// 候选人列表
 	bytes32[] candidateList;
 	// 投票类型：1.简单投票（一人一票） 2.token投票 3.每日投票（一人一天一票）
@@ -46,10 +46,10 @@ contract Voting {
 	// 管理员合约实例
 	AdminContract adminContract;
 
-	constructor(address _owner, address _adminContractAddr, string _voteTitle, uint _voteType, uint tokens, uint pricePerToken,
+	constructor(address _owner, address _adminContractAddr, string memory _proposal, uint _voteType, uint tokens, uint pricePerToken,
 		bytes32[] memory candidateNames, uint _startTime, uint _endTime) public {
 		owner = _owner;
-		voteTitle = _voteTitle;
+		proposal = _proposal;
 		voteType = _voteType;
 		candidateList = candidateNames;
 		totalTokens = tokens;
@@ -101,21 +101,32 @@ contract Voting {
 		}
 	}
 
-
-	// 获取投票信息
-	function getVoteInfo() public returns(address _owner, string memory _voteTitle, bytes32[] _candidateList, uint _voteType,
-		uint _totalTokens, uint _balanceTokens, uint _tokenPrice, uint _startTime, uint _endTime, bytes32 _winner,
-		uint _winnerVotes, uint _totalVoters, uint _totalVotes) {
+	// 获取简单和每日投票信息
+	function getVoteInfo() public view returns(address _owner, string memory _proposal, bytes32[] memory _candidateList,
+		uint[] memory _votesList, uint _voteType, uint _startTime, uint _endTime, uint _totalVoters, uint _totalVotes) {
 		_owner =owner;
-		_voteTitle = voteTitle;
+		_proposal = proposal;
 		_voteType = voteType;
-		_candidateList = candidateList;
+		(_candidateList, _votesList) = getAllCandidateVotes();
+		_startTime = startTime;
+		_endTime = endTime;
+		_totalVoters = voterAddresses.length;
+		_totalVotes = getTotalVotes();
+	}
+
+	// 获取token投票信息
+	function getTokenVoteInfo() public view returns(address _owner, string memory _proposal, bytes32[] memory _candidateList, uint[] memory _votesList,
+        uint _voteType,	uint _totalTokens, uint _balanceTokens, uint _tokenPrice, uint _startTime, uint _endTime,
+		uint _totalVoters, uint _totalVotes) {
+		_owner =owner;
+		_proposal = proposal;
+		_voteType = voteType;
+        (_candidateList, _votesList) = getAllCandidateVotes();
 		_totalTokens = _totalTokens;
 		_balanceTokens = _balanceTokens;
 		_tokenPrice = _tokenPrice;
 		_startTime = startTime;
 		_endTime = endTime;
-		(_winner,_winnerVotes) = getWinner();
 		_totalVoters = voterAddresses.length;
 		_totalVotes = getTotalVotes();
 	}
@@ -126,10 +137,16 @@ contract Voting {
 	}
 
 	// 获取所有候选人的得票数
-	function getAllCandidateVotes() public view returns (bytes32[] candidates, uint[] votesList) {
+	function getAllCandidateVotes() public view returns (bytes32[] memory candidates, uint[] memory votesList) {
+        uint votes;
 		for(uint i = 0; i < candidateList.length; i++) {
 			candidates[i] = candidateList[i];
-			votesList[i] = votesReceived[candidateList[i]];
+            votes = votesReceived[candidateList[i]];
+            if (votes == 0) {
+                votesList[i] = 0;
+            } else {
+                votesList[i] = votes;
+            }
 		}
 		return (candidates, votesList);
 	}
@@ -221,25 +238,15 @@ contract Voting {
 		return uint(-1);
 	}
 
-	// 出售的token总数
-	function tokensSold() public view returns (uint) {
-		return totalTokens - balanceTokens;
-	}
-
 	// 获取单个用户的简单和每日投票详情
 	function getVoterDetails(address user) public view returns (bytes32[] memory _candidateList, uint[] memory tokensUsedPerCandidate) {
 		return (candidateList, voterInfo[user].tokensUsedPerCandidate);
 	}
 
 	// 获取单个用户的token投票详情
-	function getTokenVoterDetails(address user) public view returns (uint tokensBought, bytes32[] memory _candidateList, uint[] memory tokensUsedPerCandidate) {
-		return (voterInfo[user].tokensBought, candidateList, voterInfo[user].tokensUsedPerCandidate);
+	function getTokenVoterDetails(address user) public view returns (uint tokensBought, uint tokenUsed, bytes32[] memory _candidateList, uint[] memory tokensUsedPerCandidate) {
+		return (voterInfo[user].tokensBought, totalTokensUsed(voterInfo[user].tokensUsedPerCandidate), candidateList, voterInfo[user].tokensUsedPerCandidate);
 	}
-
-//	// 获取每日投票详情
-//	function getDailyVoterDetails(address user) public view returns (uint[] memory tokensUsedPerCandidate) {
-//		return (voterInfo[user].tokensUsedPerCandidate);
-//	}
 
 	// 获取所有候选人
 	function getAllCandidates() public view returns (bytes32[] memory _candidateList) {

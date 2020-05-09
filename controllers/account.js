@@ -9,7 +9,7 @@ module.exports = {
             code: 0,
             msg: '成功！',
             data: {}
-        }
+        };
 
         let data = ctx.request.body;
         const pwd = data.pwd;
@@ -33,12 +33,11 @@ module.exports = {
         await fileUtil.writeFile(filePath, keystoreStr);
 
         // 将 用户地址、私钥、keystore 数据返回
-        const result = {
+        returnResult.data = {
             "account": account.address,
             "privateKey": account.privateKey,
             "keystore": config.keystoreUrl + randFilename
         };
-        returnResult.data = result;
         ctx.body = returnResult
     },
     async getAccountList(ctx) {
@@ -99,4 +98,4 @@ module.exports = {
 
         ctx.body = returnResult
     }
-}
+};

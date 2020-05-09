@@ -1,15 +1,15 @@
 /**
  * 验证token
  */
-var tokenSecret = require('../config/tokenSecret').secret
-var jwt = require('jsonwebtoken')
+var tokenSecret = require('../config/tokenSecret').secret;
+var jwt = require('jsonwebtoken');
 
 module.exports = function (req, res, next) {
-  var token = req.body.token
+  let token = req.body.token;
   if (token) {
-    var verify = jwt.verify(token, tokenSecret)
-    req.body.verify = verify.name
-    next()
+    let verify = jwt.verify(token, tokenSecret);
+    req.body.verify = verify.name;
+    next();
     return
   } else {
     res.json({
@@ -18,4 +18,4 @@ module.exports = function (req, res, next) {
       _data: {}
     })
   }
-}
+};

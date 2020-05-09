@@ -42,13 +42,14 @@
     "webpack-dev-server": "^3.1.4"
   },
   "dependencies": {
-    "fs": "0.0.1-security",
-    "web3": "^1.2.6",
     "ejs": "^2.6.1",
+    "fs": "0.0.1-security",
     "koa": "^2.5.2",
     "koa-body": "^4.0.4",
     "koa-router": "^7.4.0",
     "koa-static": "^5.0.0",
     "koa-views": "^6.1.4",
+    "package.json": "^2.0.1",
+    "web3": "^1.2.6"
   }
 }

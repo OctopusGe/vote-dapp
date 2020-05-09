@@ -1,25 +1,25 @@
-var db = require("../db/mysql")
+var db = require("../db/mysql");
 
-var conn = db.connect()
+var conn = db.connect();
 
 function insert(params, callback){
-  var sql_insert = 'insert into user set ?'
+  let sql_insert = 'insert into user set ?';
   conn.query(sql_insert, params, function(err, result){
     if(err){
       console.log('[INSERT ERROR] - ',err.message);
       callback(0);
       return;
      }
-     console.log("插入成功~")
+     console.log("插入成功~");
      callback(1);
   })
 }
 function deleteByPrimaryKey(params, callback){
-  var sql_delete = "delete from user where id = ?"
+  let sql_delete = "delete from user where id = ?";
   conn.query(sql_delete, params, function(err, result){
     if(err){
       console.log('[DELETE ERROR] - ',err.message);
-      callback(0)
+      callback(0);
       return;
      }
      console.log("删除成功~");
@@ -27,62 +27,75 @@ function deleteByPrimaryKey(params, callback){
   })
 }
 
-function updateByPrimaryKey(params, callback){
-  var sql_update = "update user set ? where id = ?"
+function updateByAddress(params, callback){
+  let sql_update = "update user set ? where address = ?";
   conn.query(sql_update, params, function(err, result){
     if(err){
       console.log('[UPDATE ERROR] - ',err.message);
       callback(0)
-      return;
+      return;;
     }
-    console.log("修改成功~")
+    console.log("修改成功~");
+    callback(1)
+  })
+}
+
+function updateByPrimaryKey(params, callback){
+  let sql_update = "update user set ? where id = ?";
+  conn.query(sql_update, params, function(err, result){
+    if(err){
+      console.log('[UPDATE ERROR] - ',err.message);
+      callback(0)
+      return;;
+    }
+    console.log("修改成功~");
     callback(1)
   })
 }
 
 function findByPrimaryKey(params, callback){
-  var sql_select = "select * from user where id = ?"
+  let sql_select = "select * from user where id = ?";
   conn.query(sql_select, params, function(err, result){
     if(err){
       console.log('[FIND ERROR] - ',err.message);
-      callback(0)
+      callback(0);
       return;
      }
-    console.log("查找成功")
+    console.log("查找成功");
     callback(1, result)
   })
 }
 
 function findByAccount(params, callback){
-  var sql_select = "select * from user where account = ?"
+  let sql_select = "select * from user where account = ?";
   conn.query(sql_select, params, function(err, result){
     if(err){
       console.log('[FIND ERROR] - ',err.message);
-      callback(0)
+      callback(0);
       return;
     }
-    console.log("查找成功")
+    console.log("查找成功");
     callback(1, result);
   })
 }
 
-function findByEthAddress(params, callback){
-  var sql_select = "select * from user where ethAddress = ?"
+function findByAddress(params, callback){
+  let sql_select = "select * from user where address = ?";
   conn.query(sql_select, params, function(err, result){
     if(err){
       console.log('[FIND ERROR] - ',err.message);
-      callback(0)
+      callback(0);
       return;
     }
-    console.log("查找成功")
+    console.log("查找成功");
     callback(1, result);
   })
 }
 
 function findByConditionsCount(params, callback){
-  var sql_select_count = 'select count(*) as allCount from user where 1 = 1 '  // 注意末尾空格
+  let sql_select_count = 'select count(*) as allCount from user where 1 = 1 ';  // 注意末尾空格
 
-  console.log(sql_select_count)
+  console.log(sql_select_count);
 
   conn.query(sql_select_count, "",function(err, res){
     if(err){
@@ -96,7 +109,7 @@ function findByConditionsCount(params, callback){
 }
 
 function findByConditions(params, callback){
-  var sql_select = 'select * from user where 1 = 1 ' // 注意末尾空格
+  let sql_select = 'select * from user where 1 = 1 '; // 注意末尾空格
 
   sql_select += 'limit ' + params.limit*(params.page-1) + ',' + params.limit
   // sql_select += 'limit ?, ?';
@@ -114,28 +127,28 @@ function findByConditions(params, callback){
 
 // 获取用户交易记录
 function findTransactByUserAddress(params, callback){
-  var sql_select = 'select transactionrecord.* from transactionrecord, user where (user.ethAddress = transactionrecord.sendAddress or user.ethAddress = transactionrecord.recieveAddress) and user.ethAddress = ?'
+  let sql_select = 'select transactionrecord.* from transactionrecord, user where (user.ethAddress = transactionrecord.sendAddress or user.ethAddress = transactionrecord.recieveAddress) and user.ethAddress = ?'
 
   conn.query(sql_select, params, function(err, result){
     if(err){
       console.log('[FIND ERROR] - ',err.message);
-      callback(0)
+      callback(0);
       return
     }
-    console.log("查询成功")
+    console.log("查询成功");
     callback(1, result)
   })
 }
 
 
-
 module.exports = {
   insert,
   deleteByPrimaryKey,
+  updateByAddress,
   updateByPrimaryKey,
   findByPrimaryKey,
   findByAccount,
-  findByEthAddress,
+  findByAddress,
   findByConditionsCount,
   findByConditions,
   findTransactByUserAddress
