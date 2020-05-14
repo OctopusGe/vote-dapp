@@ -12,7 +12,6 @@ db.connect = function(){
       return;
     }
   });
-
   return connection;
 };
 

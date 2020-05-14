@@ -5,12 +5,12 @@ const config = require("../config/config");
 const contractTool = require('../config/contractTool');
 
 // 生成私钥、地址，部署并初始化一个新的合约，指定拥有者为此地址
-function createAccount(callback) {
+function createAccount(password, adminPrivateKey, callback) {
     // 生成私钥和地址
     let account = web3.eth.accounts.create();
 
     // encrypt 返回一个JSON 对象
-    const keystoreJson = account.encrypt(pwd);
+    const keystoreJson = account.encrypt(password);
 
     // 将 JSON 对象转为字符串
     const keystoreStr = JSON.stringify(keystoreJson);
@@ -28,9 +28,10 @@ function createAccount(callback) {
     let userContract = new web3.eth.Contract(contractTool.userContractAbi);
     userContract.deploy({
         data: contractTool.userByteCode,
-        arguments: account.address
+        arguments: [account.address]
     }).send({
-        from: contractTool.adminAddress,
+        //from: contractTool.adminAddress,
+        from: "0x3d2d3eded3edaaac0aaa8b75b7bc18647fb3c644",
         gas: 3000000
     }).then(function (newContractInstance) {
         let result = {                             // 成功部署和初始化
@@ -40,26 +41,68 @@ function createAccount(callback) {
             keystore: config.keystoreUrl + randFilename
         };
         console.log('合约部署成功');
-        callback(1, result);
-        // 初始化此合约一定的以太币
-        web3.eth.sendTransaction({
-            from: contractTool.adminAddress,
+
+        let adminAccount = web3.eth.accounts.privateKeyToAccount(adminPrivateKey);
+
+        // 给合约转以太币转账参数
+        let tx1 = {
             to: newContractInstance.options.address,
-            value: 20000000000000000000                 // 20ETH
-        }).then(function () {
-            // 初始化用户一定的以太币
-            web3.eth.sendTransaction({
-                from: contractTool.adminAddress,
-                to: account.address,
-                value: 20000000000000000000             // 20ETH
-            }).then(function () {
-                console.log('初始化以太币成功')
-            }, function (err) {
-                console.log('初始化以太币失败, 错误信息：' + err)
+            value: 20000000000000000000,              // 20ETH
+            gasLimit: 546157
+        };
+
+        // 给用户转以太币转账参数
+        let tx2 = {
+            to: account.address,
+            value: 20000000000000000000,              // 20ETH
+            gasLimit: 2546157
+        };
+
+        // 初始化合约以太币，对原生交易进行签名并发送
+        adminAccount.signTransaction(tx1).then(function (result1) {
+            web3.eth.sendSignedTransaction(result1.rawTransaction.toString('hex')).then(function () {
+                console.log("初始化合约以太币成功");
+                // 初始化用户以太币，对原生交易进行签名并发送
+                adminAccount.signTransaction(tx2).then(function (result2) {
+                    web3.eth.sendSignedTransaction(result2.rawTransaction.toString('hex')).then(function () {
+                        console.log("初始化用户以太币成功");
+                        callback(1, result);
+                    }, function () {
+                        callback(0)
+                    })
+                }, function () {
+                    callback(0)
+                });
+            }, function () {
+                callback(0)
             })
-        }, function (err) {
-            console.log('初始化合约以太币失败, 错误信息：' + err)
-        })
+        }, function () {
+            callback(0)
+        });
+
+        // 初始化此合约一定的以太币
+        // web3.eth.sendTransaction({
+        //     from: contractTool.adminAddress,
+        //     to: newContractInstance.options.address,
+        //     value: 20000000000000000000                 // 20ETH
+        // }).then(function () {
+        //     // 初始化用户一定的以太币
+        //     web3.eth.sendTransaction({
+        //         from: contractTool.adminAddress,
+        //         to: account.address,
+        //         value: 1000000000000000000             // 1ETH
+        //     }).then(function () {
+        //         console.log('初始化以太币成功')
+        //     }, function (err) {
+        //         console.log('初始化以太币失败, 错误信息：' + err)
+        //     })
+        // }, function (err) {
+        //     console.log('初始化合约以太币失败, 错误信息：' + err)
+        // });
+
+        // callback(1, result);
+        console.log(result);
+
     }, function () {
         callback(0)
     })
@@ -151,6 +194,17 @@ function getVoteData(ethAddress, voteAddress, contractAddr, callback) {
     });
 }
 
+// 获取投票数据
+function getMyVoteAddresses(ethAddress, contractAddr, callback) {
+    let userContract = new web3.eth.Contract(contractTool.userContractAbi, contractAddr);
+
+    userContract.methods.getMyVoteAddresses(ethAddress).call().then(function (result) {
+        callback(1, result)
+    }, function () {
+        callback(0)
+    });
+}
+
 // 所有人调用（除管理员），由一个账户向另一个账户转一定的以太币
 // senderPrivateKey：发送方私钥，receiverEthAddr：接收方以太坊地址，value：转账金额
 function transfer(senderPrivateKey, receiverEthAddr, value, callback) {
@@ -192,6 +246,7 @@ module.exports = {
     addVoteData,
     isVoted,
     getVoteData,
+    getMyVoteAddresses,
     transfer,
     getBalance
 };

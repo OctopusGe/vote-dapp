@@ -30,7 +30,7 @@ contract User {
     uint[] voteForCandidate;
 
     // 构造函数 -- 指定用户的地址
-    constructor(address _userAddress) public {
+    constructor(address _userAddress) public payable {
         user.userAddress = _userAddress;
         user.voteCount = 0;
         user.voteProject = 0;
@@ -110,4 +110,12 @@ contract User {
         require(user.userAddress == _userAddress, "没有权限");
         return (votedData[_voteAddress].voteAddress, votedData[_voteAddress].ownerAddress, votedData[_voteAddress].candidateList, votedData[_voteAddress].myVoteForCandidate);
     }
+
+    // 获取本用户发布的投票合约地址
+    function getMyVoteAddresses(address _userAddress) public view returns (address[] memory _voteAddressList) {
+        require(user.userAddress == _userAddress, "没有权限");
+        return myVoteAddresses;
+    }
+
+    function()external payable{}
 }

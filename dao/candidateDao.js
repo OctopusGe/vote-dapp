@@ -16,7 +16,7 @@ function insert(params, callback){
 }
 
 function deleteByVoteAddress(params, callback){
-    let sql_delete = "delete from user candidate vote_address = ?";
+    let sql_delete = "delete from candidate vote_address = ?";
     conn.query(sql_delete, params, function(err, result){
         if(err){
             console.log('[DELETE ERROR] - ',err.message);

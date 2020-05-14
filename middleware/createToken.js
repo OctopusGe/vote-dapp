@@ -12,7 +12,7 @@ module.exports = function(payload){
   var token = jwt.sign({
     name: payload,
     // exp: parseInt(expiry.getTime()/1000)
-  }, tokenSecret)
+  }, tokenSecret);
 
   return token
-}
+};

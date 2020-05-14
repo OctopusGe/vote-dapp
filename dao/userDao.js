@@ -68,6 +68,7 @@ function findByPrimaryKey(params, callback){
 
 function findByAccount(params, callback){
   let sql_select = "select * from user where account = ?";
+  console.log( sql_select );
   conn.query(sql_select, params, function(err, result){
     if(err){
       console.log('[FIND ERROR] - ',err.message);
@@ -75,6 +76,30 @@ function findByAccount(params, callback){
       return;
     }
     console.log("查找成功");
+    console.log(result);
+    callback(1, result);
+  })
+}
+
+function findByAccountList(params, callback){
+  let inlist = '';
+  for(let i = 0; i < params.length; i++) {
+    inlist += '?,';
+  }
+  inlist = inlist.substring(0,inlist.length-1);
+  console.log("param:" + params);
+  console.log("inlist:" + inlist);
+
+  let sql_select = "select * from user where account in(" + inlist + ")";
+  console.log( sql_select );
+  conn.query(sql_select, params, function(err, result){
+    if(err){
+      console.log('[FIND ERROR] - ',err.message);
+      callback(0);
+      return;
+    }
+    console.log("查找成功");
+    console.log(result);
     callback(1, result);
   })
 }
@@ -148,6 +173,7 @@ module.exports = {
   updateByPrimaryKey,
   findByPrimaryKey,
   findByAccount,
+  findByAccountList,
   findByAddress,
   findByConditionsCount,
   findByConditions,

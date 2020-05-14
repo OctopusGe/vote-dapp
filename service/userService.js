@@ -19,10 +19,13 @@ function login(req, callback) {
                 obj._code = '200';
                 obj._msg = '登录成功';
                 obj._data = {};
-                obj._data.token = createToken({id: result[0].id, type: 'user'});
+                obj._data.token = createToken({id: result[0].id, ethAddress: result[0].ethAddress, type: 'user'});
                 delete result[0].privateKey;
+                delete result[0].password;
                 delete result[0].contractAddr;
+                delete result[0].createTime;
                 obj._data.userInfo = result[0];
+                console.log(obj._data.token);
                 callback(obj)
             } else {
                 obj._code = '201';
@@ -43,16 +46,20 @@ function login(req, callback) {
 function register(req, callback) {
     if (req.body && req.body.account && req.body.password) {
         // 判定账户是否已存在
-        dao.userDao.findByAccount(req.body.account, function (status, result) {
-
-            if (1 === status && !result[0]) {
+        dao.userDao.findByAccountList([req.body.account, "admin"], function (status, result) {
+            if (1 === status && result.length === 1) {
+                console.log("==============");
+                console.log(result[0]);
                 // 生成私钥、地址、初始化智能合约
-                dao.userEthDao.createAccount(function (status, result) {
-                    if (1 == status) {
+                dao.userEthDao.createAccount(req.body.password, result[0].privateKey, function (status, result) {
+                    //console.log(result);
+                    //console.log();
+                    //console.log("status2:" + status);
+                    if (1 === status) {
                         req.body.privateKey = result.privateKey;
                         req.body.ethAddress = result.ethAddress;
                         req.body.contractAddr = result.contractAddr;
-                        req.body.createTime = new Date();
+                        req.body.createTime = dateUtil.format(new Date(), "-");
                         dao.userDao.insert(req.body, function (status) {
                             if (1 === status) {
                                 obj._code = '200';
@@ -96,7 +103,9 @@ function getUserInfo(req, callback) {
                 obj._code = '200';
                 obj._msg = '查询成功';
                 delete result[0].privateKey;
+                delete result[0].password;
                 delete result[0].contractAddr;
+                delete result[0].createTime;
                 obj._data = result[0];
                 callback(obj)
             } else {
@@ -142,3 +151,73 @@ function updateUserInfo(req, callback) {
         callback(obj)
     }
 }
+
+// 获取用户发布的投票
+function getUserVote(req, callback) {
+    if (req.body && req.body.verify && req.body.verify.id) {
+        dao.userDao.findByPrimaryKey(req.body.verify.id, function (status, result) {
+            if (1 === status && result[0]) {
+                dao.userEthDao.getMyVoteAddresses(result[0].ethAddress, result[0].contractAddr,function (status2, result2) {
+                    if (1 === status2 && result2[0]) {
+                        obj._code = '200';
+                        obj._msg = '查询成功';
+                        obj._data = result2[0];
+                        callback(obj)
+                    } else {
+                        obj._code = '201';
+                        obj._msg = '查询失败';
+                        obj._data = {};
+                        callback(obj)
+                    }
+                })
+            } else {
+                obj._code = '201';
+                obj._msg = '查询失败';
+                obj._data = {};
+                callback(obj)
+            }
+        })
+    } else {
+        obj._code = '201';
+        obj._msg = '查询失败';
+        obj._data = {};
+        callback(obj)
+    }
+}
+
+function getBalance(req, callback){
+    if(req.body && req.body.verify && req.body.verify.id){
+        dao.userDao.findByPrimaryKey(req.body.verify.id, function(status, user){
+            if(1 === status && user[0]){
+                dao.userEthDao.getBalance(user[0].ethAddress, function(status, result){
+                    if(1 === status){
+                        obj._code = '200';
+                        obj._msg = '查询成功';
+                        obj._data = {
+                            balance: result
+                        };
+                        callback(obj)
+                    } else {
+                        obj._code = '201';
+                        obj._msg = '查询失败';
+                        obj._data = {};
+                        callback(obj)
+                    }
+                })
+            }
+        })
+    } else{
+        obj._code = '201';
+        obj._msg = '查询失败';
+        obj._data = {};
+        callback(obj)
+    }
+}
+
+module.exports = {
+    login,
+    register,
+    getUserInfo,
+    getBalance
+};
+

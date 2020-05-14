@@ -2,29 +2,52 @@ const web3 = require("../utils/web3helper").getWeb3();
 const contractTool = require('../config/contractTool');
 
 // 部署并初始化一个新的投票合约，指定拥有者地址
-function createVote(voteInfo, callback) {
-
+function createVote(voteInfo, adminPrivateKey, callback) {
     // 部署合约
     let voteContract = new web3.eth.Contract(contractTool.voteContractAbi);
 
     voteContract.deploy({
         data: contractTool.voteByteCode,
-        //arguments: [voteInfo.ownerAddr, contractTool.adminContractAddress, voteInfo.voteType, voteInfo.tokens, vote]     // 指定合约所属地址
-        arguments: voteInfo,    // 指定合约的参数
+        arguments: [voteInfo.ownerAddress, voteInfo.proposal, voteInfo.voteType, voteInfo.totalTokens,
+                    voteInfo.tokenPrice, voteInfo.candidates.map(x => web3.utils.asciiToHex(x)), parseInt(voteInfo.startTime/1000),
+                    parseInt(voteInfo.endTime/1000)]    // 指定合约的参数
     }).send({
-        from: contractTool.adminAddress,
+        //from: contractTool.adminAddress,
+        from: "0x3d2d3eded3edaaac0aaa8b75b7bc18647fb3c644",
         gas: 3000000
     }).then(function (newContractInstance) {    // 成功部署和初始化
         let contractAddr = newContractInstance.options.address;
         console.log('合约部署成功');
-        callback(1, contractAddr);
         // 初始化此合约一定的以太币
-        web3.eth.sendTransaction({
-            from: contractTool.adminAddress,
-            to: newContractInstance.options.address,
-            value: 20000000000000000000                 // 20ETH
-        })
-    }, function () {
+        let tx = {
+            to: contractAddr,
+            value: 20000000000000000000,              // 20ETH
+            gas: 6546157
+        };
+
+        let adminAccount = web3.eth.accounts.privateKeyToAccount(adminPrivateKey);
+
+        // 初始化合约以太币，对原生交易进行签名并发送
+        adminAccount.signTransaction(tx).then(function (result) {
+            web3.eth.sendSignedTransaction(result.rawTransaction.toString('hex')).then(function () {
+                console.log("初始化投票合约以太币成功");
+                callback(1, contractAddr);
+            }, function (msg) {
+                console.log(msg);
+                callback(0)
+            })
+        }, function (msg) {
+            console.log(msg);
+            callback(0)
+        });
+
+        // web3.eth.sendTransaction({
+        //     from: contractTool.adminAddress,
+        //     to: newContractInstance.options.address,
+        //     value: 20000000000000000000                 // 20ETH
+        // })
+    }, function (result1) {
+        console.log(result1);
         callback(0)
     })
 }

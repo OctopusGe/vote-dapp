@@ -2,13 +2,13 @@ pragma solidity >=0.4.18;
 
 
 // 声明其他合约的接口  -- 授权合约
-interface AdminContract {
-	function getAdminAddress() external view returns (address);
-
-	function getAward() external view returns (uint);
-
-	function getUploadSection() external view returns (uint);
-}
+//interface AdminContract {
+//	function getAdminAddress() external view returns (address);
+//
+//	function getAward() external view returns (uint);
+//
+//	function getUploadSection() external view returns (uint);
+//}
 
 contract Voting {
 	// 投票人的投票信息
@@ -44,10 +44,10 @@ contract Voting {
 	bytes32 winner;
 
 	// 管理员合约实例
-	AdminContract adminContract;
+	//AdminContract adminContract;
 
-	constructor(address _owner, address _adminContractAddr, string memory _proposal, uint _voteType, uint tokens, uint pricePerToken,
-		bytes32[] memory candidateNames, uint _startTime, uint _endTime) public {
+	constructor(address _owner, string memory _proposal, uint _voteType, uint tokens, uint pricePerToken,
+		bytes32[] memory candidateNames, uint _startTime, uint _endTime) public payable {
 		owner = _owner;
 		proposal = _proposal;
 		voteType = _voteType;
@@ -58,7 +58,7 @@ contract Voting {
 		startTime = _startTime;
 		endTime = _endTime;
 		// 通过地址拿到合约实例   --  将地址强制转换为合约
-		adminContract = AdminContract(_adminContractAddr);
+		//adminContract = AdminContract(_adminContractAddr);
 	}
 
 	modifier timeLimit(){
@@ -72,7 +72,7 @@ contract Voting {
 		tokensToBuy = msg.value / tokenPrice;
 		require(tokensToBuy <= balanceTokens, "超出剩余token总数");
 		//控制购买token频率
-		require(voterInfo[msg.sender].lastBoughtTokensTime == 0 || ((block.timestamp - voterInfo[msg.sender].lastBoughtTokensTime) > adminContract.getUploadSection()), "购买太频繁");
+		require(voterInfo[msg.sender].lastBoughtTokensTime == 0 || ((block.timestamp - voterInfo[msg.sender].lastBoughtTokensTime) > 10), "购买太频繁");
 		voterInfo[msg.sender].voterAddress = msg.sender;
 		voterInfo[msg.sender].tokensBought += tokensToBuy;
 		balanceTokens -= tokensToBuy;
@@ -166,7 +166,7 @@ contract Voting {
 		voterInfo[msg.sender].tokensUsedPerCandidate[index] = 1;
 		voterInfo[msg.sender].voted = true;
 		voterInfo[msg.sender].lastVoteTime = block.timestamp;
-		msg.sender.transfer(adminContract.getAward());
+		//msg.sender.transfer(adminContract.getAward());
 	}
 
 	// token投票
@@ -174,7 +174,7 @@ contract Voting {
 		require(voteType == 2, "非token投票");
 		uint index = indexOfCandidate(candidate);
 		require(index != uint(-1), "候选人不存在");
-		require(voterInfo[msg.sender].lastVoteTime == 0 || ((block.timestamp - voterInfo[msg.sender].lastVoteTime) > adminContract.getUploadSection()), "投票太频繁");
+		require(voterInfo[msg.sender].lastVoteTime == 0 || ((block.timestamp - voterInfo[msg.sender].lastVoteTime) > 60), "投票太频繁");
 
 		// 初始化投票信息
 		initVoteInfo(msg.sender);
@@ -186,9 +186,9 @@ contract Voting {
 		voterInfo[msg.sender].tokensUsedPerCandidate[index] += votesInTokens;
 		voterInfo[msg.sender].lastVoteTime = block.timestamp;
 		// token价值大于一个以太，将会获取回报
-		if (votesInTokens * tokenPrice >= 1 ether) {
-			msg.sender.transfer(adminContract.getAward());
-		}
+		//if (votesInTokens * tokenPrice >= 1 ether) {
+		//	msg.sender.transfer(adminContract.getAward());
+		//}
 	}
 
 	// 每日投票
@@ -206,7 +206,7 @@ contract Voting {
 		voterInfo[msg.sender].tokensUsedPerCandidate[index] += 1;
 		voterInfo[msg.sender].voted = true;
 		voterInfo[msg.sender].lastVoteTime = block.timestamp;
-		msg.sender.transfer(adminContract.getAward());
+		//msg.sender.transfer(adminContract.getAward());
 	}
 
 	// 初始化投票信息
