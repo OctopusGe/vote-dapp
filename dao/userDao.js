@@ -33,7 +33,7 @@ function updateByAddress(params, callback){
     if(err){
       console.log('[UPDATE ERROR] - ',err.message);
       callback(0)
-      return;;
+      return;
     }
     console.log("修改成功~");
     callback(1)
@@ -46,7 +46,7 @@ function updateByPrimaryKey(params, callback){
     if(err){
       console.log('[UPDATE ERROR] - ',err.message);
       callback(0)
-      return;;
+      return;
     }
     console.log("修改成功~");
     callback(1)

@@ -46,9 +46,9 @@ contract User {
     }
 
     // 获取用户个人信息
-    function getUserInfo(address call) public view returns (address userAddress, uint voteCount, uint voteProject, uint myVoteCount, uint lastVoteTime, uint lastCreateVoteTime) {
+    function getUserInfo(address call) public view returns (uint voteCount, uint voteProject, uint myVoteCount, uint lastVoteTime, uint lastCreateVoteTime) {
         require(call == user.userAddress, "没有权限");
-        return (user.userAddress, user.voteCount, user.voteProject, user.myVoteCount, user.lastVoteTime, user.lastCreateVoteTime);
+        return (user.voteCount, user.voteProject, user.myVoteCount, user.lastVoteTime, user.lastCreateVoteTime);
     }
 
     // 第一次投票
@@ -70,6 +70,7 @@ contract User {
         votedData[_voteAddress] = vote;
         user.lastVoteTime = block.timestamp;
         user.voteProject += 1;
+        user.voteCount += 1;
         if (_owner == user.userAddress) {
             myVoteAddresses.push(_voteAddress);
             user.myVoteCount += 1;
@@ -100,9 +101,9 @@ contract User {
     }
 
     // 是否给投票合约投过票
-    function isVoted(address _userAddress, address _voteAddress) public view returns (bool _voted) {
+    function isVoted(address _userAddress, address _voteAddress) public view returns (bool) {
         require(user.userAddress == _userAddress, "没有权限");
-        return votedData[_voteAddress].myVoteForCandidate.length == 0;
+        return votedData[_voteAddress].candidateList.length != 0;
     }
 
     // 获取投票数据

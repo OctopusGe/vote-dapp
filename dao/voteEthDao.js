@@ -1,4 +1,6 @@
 const web3 = require("../utils/web3helper").getWeb3();
+const fileUtil = require("../utils/fileutil");
+const path = require('path');
 const contractTool = require('../config/contractTool');
 
 // 部署并初始化一个新的投票合约，指定拥有者地址
@@ -9,7 +11,8 @@ function createVote(voteInfo, adminPrivateKey, callback) {
     voteContract.deploy({
         data: contractTool.voteByteCode,
         arguments: [voteInfo.ownerAddress, voteInfo.proposal, voteInfo.voteType, voteInfo.totalTokens,
-                    voteInfo.tokenPrice, voteInfo.candidates.map(x => web3.utils.asciiToHex(x)), parseInt(voteInfo.startTime/1000),
+                    web3.utils.toWei(voteInfo.tokenPrice.toString(), 'ether'), voteInfo.candidates.map(x => web3.utils.utf8ToHex(x)),
+                    parseInt(voteInfo.startTime/1000),
                     parseInt(voteInfo.endTime/1000)]    // 指定合约的参数
     }).send({
         //from: contractTool.adminAddress,
@@ -55,19 +58,40 @@ function createVote(voteInfo, adminPrivateKey, callback) {
 // 获取投票链上基本信息
 // contractAddr：投票合约地址
 function getVoteInfo(voteType, contractAddr, callback) {
+
     let voteContract = new web3.eth.Contract(contractTool.voteContractAbi, contractAddr);
     // 简单投票和每日投票信息
-    if (voteType === 1 || voteType === 2) {
+    if (voteType === 1 || voteType === 3) {
         voteContract.methods.getVoteInfo().call().then(function (result) {
-            callback(1, result)
-        }, function () {
+            let candidateList = [];
+            result._candidateList.forEach(candidate => {
+                candidateList.push(web3.utils.hexToUtf8(candidate));
+            });
+            let returnResult = {
+                candidateList : candidateList,
+                votesList: result._votesList,
+                totalVoter : result._totalVoters
+            };
+            callback(1, returnResult);
+        }, function (msg) {
+            console.log(msg);
             callback(0)
         });
     }
     // token投票信息
-    if (voteType === 3) {
+    if (voteType === 2) {
         voteContract.methods.getTokenVoteInfo().call().then(function (result) {
-            callback(1, result)
+            let candidateList = [];
+            result._candidateList.forEach(candidate => {
+                candidateList.push(web3.utils.hexToUtf8(candidate));
+            });
+            let returnResult = {
+                candidateList : candidateList,
+                votesList: result._votesList,
+                balanceTokens : result._balanceTokens,
+                totalVoter : result._totalVoters
+            };
+            callback(1, returnResult)
         }, function () {
             callback(0)
         });
@@ -77,47 +101,57 @@ function getVoteInfo(voteType, contractAddr, callback) {
 
 // 由用户调用，添加投票数据
 function addVoteData(voteDate, privateKey, contractAddr, callback) {
-    let voteContract = new web3.eth.Contract(contractTool.userContractAbi, contractAddr);
-
+    let voteContract = new web3.eth.Contract(contractTool.voteContractAbi, contractAddr);
+    console.log(voteDate);
     // 通过私钥获得账户
-    let account = web3.eth.accounts.privateKeyToAccount(privateKey);
+    let account =  web3.eth.accounts.privateKeyToAccount(privateKey);
+    console.log(account.address);
     // 构造一个原生交易
     let tx = {};
     // 简单投票（每人一票）
     if (voteDate.voteType === 1) {
         tx = {
+            // from: account.address,
             to: contractAddr,
             gasLimit: 546157,
+            //gas: 3000000,
             value: 0,
-            data: voteContract.methods.simpleVoteForCandidate(web3.utils.asciiToHex(voteDate.candidate)).encodeABI()  // 为指定的合约方法进行ABI编码
+            data: voteContract.methods.simpleVoteForCandidate(web3.utils.utf8ToHex(voteDate.candidate)).encodeABI()  // 为指定的合约方法进行ABI编码
         };
     }
     // token投票
     if (voteDate.voteType === 2) {
         tx = {
+            // from: account.address,
             to: contractAddr,
             gasLimit: 546157,
+            //gas: 3000000,
             value: 0,
-            data: voteContract.methods.tokenVoteForCandidate(web3.utils.asciiToHex(voteDate.candidate), voteDate.votesInTokens).encodeABI()  // 为指定的合约方法进行ABI编码
+            data: voteContract.methods.tokenVoteForCandidate(web3.utils.utf8ToHex(voteDate.candidate), voteDate.votes).encodeABI()  // 为指定的合约方法进行ABI编码
         };
     }
     // 每日投票（一人一天一票）
     if (voteDate.voteType === 3) {
         tx = {
+            // from: account.address,
             to: contractAddr,
             gasLimit: 546157,
+            //gas: 3000000,
             value: 0,
-            data: voteContract.methods.dailyVoteForCandidate(web3.utils.asciiToHex(voteDate.candidate)).encodeABI()  // 为指定的合约方法进行ABI编码
+            data: voteContract.methods.dailyVoteForCandidate(web3.utils.utf8ToHex(voteDate.candidate)).encodeABI()  // 为指定的合约方法进行ABI编码
         };
     }
+
     // 对原生交易进行签名并发送
     account.signTransaction(tx).then(function (result) {
         web3.eth.sendSignedTransaction(result.rawTransaction.toString('hex')).then(function () {
-            callback(1)
-        }, function () {
+            callback(1);
+        }, function (msg) {
+            console.log(msg);
             callback(0)
         })
-    }, function () {
+    }, function (msg) {
+        console.log(msg);
         callback(0)
     })
 }
@@ -133,7 +167,7 @@ function buyTokens(tokenValue, privateKey, contractAddr, callback) {
     let tx = {
         to: contractAddr,
         gasLimit: 546157,
-        value: web3.utils.toWei(tokenValue.toString(), 'ether'),
+        value: web3.utils.toWei(tokenValue, 'ether'),
         data: voteContract.methods.buyTokens().encodeABI()  // 为指定的合约方法进行ABI编码
     };
 
@@ -141,7 +175,8 @@ function buyTokens(tokenValue, privateKey, contractAddr, callback) {
     account.signTransaction(tx).then(function (result) {
         web3.eth.sendSignedTransaction(result.rawTransaction.toString('hex')).then(function () {
             callback(1)
-        }, function () {
+        }, function (msg) {
+            console.log(msg);
             callback(0)
         })
     }, function () {
@@ -180,14 +215,21 @@ function getVoterDetails(ethAddress, contractAddr, voteType, callback) {
 
     if (voteType === 1 || voteType === 3) {
         voteContract.methods.getVoterDetails(ethAddress).call().then(function (result) {
-            callback(1, result)
+            console.log(result.tokensUsedPerCandidate);
+            callback(1, result.tokensUsedPerCandidate)
         }, function () {
             callback(0)
         });
     }
     if (voteType === 2) {
         voteContract.methods.getTokenVoterDetails(ethAddress).call().then(function (result) {
-            callback(1, result)
+            console.log(result);
+            let returnResult = {
+                tokensBought : result.tokensBought,
+                tokenUsed : result.tokenUsed,
+                votesList : result.tokensUsedPerCandidate
+            };
+            callback(1, returnResult)
         }, function () {
             callback(0)
         });

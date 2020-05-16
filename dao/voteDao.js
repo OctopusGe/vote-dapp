@@ -53,10 +53,24 @@ function findByPrimaryKey(params, callback){
     })
 }
 
+function findByContractAddress(params, callback){
+    let sql_select = "select * from vote where contractAddress = ?";
+    conn.query(sql_select, params, function(err, result){
+        if(err){
+            console.log('[FIND ERROR] - ',err.message);
+            callback(0);
+            return;
+        }
+        console.log("查找成功");
+        callback(1, result)
+    })
+}
+
 module.exports = {
     insert,
     deleteByPrimaryKey,
     updateByPrimaryKey,
-    findByPrimaryKey
+    findByPrimaryKey,
+    findByContractAddress
 };
 

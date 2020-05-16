@@ -16,7 +16,7 @@ function insert(params, callback){
 }
 
 function deleteByVoteAddress(params, callback){
-    let sql_delete = "delete from candidate vote_address = ?";
+    let sql_delete = "delete from candidate voteAddress = ?";
     conn.query(sql_delete, params, function(err, result){
         if(err){
             console.log('[DELETE ERROR] - ',err.message);
@@ -29,7 +29,7 @@ function deleteByVoteAddress(params, callback){
 }
 
 function updateByVoteAddressAndCandidateIndex(params, callback){
-    let sql_update = "update candidate set ? where vote_address = ? and candidate_index = ?";
+    let sql_update = "update candidate set ? where voteAddress = ? and candidateIndex = ?";
     conn.query(sql_update, params, function(err, result){
         if(err){
             console.log('[UPDATE ERROR] - ',err.message);
@@ -42,7 +42,7 @@ function updateByVoteAddressAndCandidateIndex(params, callback){
 }
 
 function findByVoteAddress(params, callback){
-    let sql_select = "select * from candidate where vote_address = ?";
+    let sql_select = "select * from candidate where voteAddress = ? order by candidateIndex asc";
     conn.query(sql_select, params, function(err, result){
         if(err){
             console.log('[FIND ERROR] - ',err.message);
@@ -53,6 +53,20 @@ function findByVoteAddress(params, callback){
         callback(1, result)
     })
 }
+
+// function findByVoteAddressAndCandidateIndex(params, callback){
+//     let sql_update = "select * from candidate where voteAddress = ? and candidateindex = ?";
+//     conn.query(sql_update, params, function(err, result){
+//         if(err){
+//             console.log('[UPDATE ERROR] - ',err.message);
+//             callback(0)
+//             return;;
+//         }
+//         console.log("修改成功~");
+//         callback(1, result)
+//     })
+// }
+
 
 module.exports = {
     insert,

@@ -1,15 +1,5 @@
 pragma solidity >=0.4.18;
 
-
-// 声明其他合约的接口  -- 授权合约
-//interface AdminContract {
-//	function getAdminAddress() external view returns (address);
-//
-//	function getAward() external view returns (uint);
-//
-//	function getUploadSection() external view returns (uint);
-//}
-
 contract Voting {
 	// 投票人的投票信息
 	struct Voter {
@@ -34,6 +24,8 @@ contract Voting {
 	string proposal;
 	// 候选人列表
 	bytes32[] candidateList;
+	// 候选人列表
+	uint[] candidateVotesList;
 	// 投票类型：1.简单投票（一人一票） 2.token投票 3.每日投票（一人一天一票）
 	uint voteType;
 	uint totalTokens;
@@ -41,7 +33,6 @@ contract Voting {
 	uint tokenPrice;
 	uint startTime;
 	uint endTime;
-	bytes32 winner;
 
 	// 管理员合约实例
 	//AdminContract adminContract;
@@ -80,55 +71,20 @@ contract Voting {
 		return tokensToBuy;
 	}
 
-	// 获取票数最多的候选人和票数
-	function getWinner() public returns (bytes32 _winner, uint votes) {
-		_winner = candidateList[0];
-		votes = votesReceived[candidateList[0]];
-		for(uint i = 0; i < candidateList.length; i++) {
-			if (votes < votesReceived[candidateList[i]]) {
-				_winner = candidateList[i];
-				votes = votesReceived[candidateList[i]];
-			}
-		}
-		winner = _winner;
-		return (_winner, votes);
-	}
-
-	// 获取总票数
-	function getTotalVotes() public view returns (uint votes) {
-		for(uint i = 0; i < candidateList.length; i++) {
-			votes += votesReceived[candidateList[i]];
-		}
-	}
 
 	// 获取简单和每日投票信息
-	function getVoteInfo() public view returns(address _owner, string memory _proposal, bytes32[] memory _candidateList,
-		uint[] memory _votesList, uint _voteType, uint _startTime, uint _endTime, uint _totalVoters, uint _totalVotes) {
-		_owner =owner;
-		_proposal = proposal;
-		_voteType = voteType;
-		(_candidateList, _votesList) = getAllCandidateVotes();
-		_startTime = startTime;
-		_endTime = endTime;
-		_totalVoters = voterAddresses.length;
-		_totalVotes = getTotalVotes();
+	function getVoteInfo() public returns(bytes32[] memory _candidateList, uint[] memory _votesList, uint _totalVoters) {
+		return (candidateList, getAllCandidateVotes(), voterAddresses.length);
 	}
 
 	// 获取token投票信息
-	function getTokenVoteInfo() public view returns(address _owner, string memory _proposal, bytes32[] memory _candidateList, uint[] memory _votesList,
-        uint _voteType,	uint _totalTokens, uint _balanceTokens, uint _tokenPrice, uint _startTime, uint _endTime,
-		uint _totalVoters, uint _totalVotes) {
-		_owner =owner;
-		_proposal = proposal;
-		_voteType = voteType;
-        (_candidateList, _votesList) = getAllCandidateVotes();
-		_totalTokens = _totalTokens;
-		_balanceTokens = _balanceTokens;
-		_tokenPrice = _tokenPrice;
-		_startTime = startTime;
-		_endTime = endTime;
-		_totalVoters = voterAddresses.length;
-		_totalVotes = getTotalVotes();
+	function getTokenVoteInfo() public returns(bytes32[] memory _candidateList, uint[] memory _votesList, uint _balanceTokens, uint _totalVoters) {
+		return (candidateList, getAllCandidateVotes(), balanceTokens, voterAddresses.length);
+	}
+
+	// 获取单个候选人的得票数
+	function getAllVoter() public view returns (address[] memory voterAddressList) {
+		return voterAddresses;
 	}
 
 	// 获取单个候选人的得票数
@@ -137,23 +93,21 @@ contract Voting {
 	}
 
 	// 获取所有候选人的得票数
-	function getAllCandidateVotes() public view returns (bytes32[] memory candidates, uint[] memory votesList) {
-        uint votes;
+	function getAllCandidateVotes() public returns (uint[]  memory votesList) {
+		delete candidateVotesList;
 		for(uint i = 0; i < candidateList.length; i++) {
-			candidates[i] = candidateList[i];
-            votes = votesReceived[candidateList[i]];
-            if (votes == 0) {
-                votesList[i] = 0;
-            } else {
-                votesList[i] = votes;
-            }
+			if (uint(0) == votesReceived[candidateList[i]]) {
+				candidateVotesList.push(0);
+			} else {
+				candidateVotesList.push(votesReceived[candidateList[i]]);
+			}
 		}
-		return (candidates, votesList);
+		return candidateVotesList;
 	}
 
 	// 简单投票
 	function simpleVoteForCandidate(bytes32 candidate) timeLimit public payable {
-		require(voteType == 2, "非简单投票");
+		require(voteType == 1, "非简单投票");
 		uint index = indexOfCandidate(candidate);
 		require(index != uint(-1), "候选人不存在");
 		voterInfo[msg.sender].voterAddress = msg.sender;
@@ -174,7 +128,7 @@ contract Voting {
 		require(voteType == 2, "非token投票");
 		uint index = indexOfCandidate(candidate);
 		require(index != uint(-1), "候选人不存在");
-		require(voterInfo[msg.sender].lastVoteTime == 0 || ((block.timestamp - voterInfo[msg.sender].lastVoteTime) > 60), "投票太频繁");
+		require(voterInfo[msg.sender].lastVoteTime == 0 || ((block.timestamp - voterInfo[msg.sender].lastVoteTime) > 5), "投票太频繁");
 
 		// 初始化投票信息
 		initVoteInfo(msg.sender);
@@ -185,6 +139,7 @@ contract Voting {
 		votesReceived[candidate] += votesInTokens;
 		voterInfo[msg.sender].tokensUsedPerCandidate[index] += votesInTokens;
 		voterInfo[msg.sender].lastVoteTime = block.timestamp;
+        voterInfo[msg.sender].voted = true;
 		// token价值大于一个以太，将会获取回报
 		//if (votesInTokens * tokenPrice >= 1 ether) {
 		//	msg.sender.transfer(adminContract.getAward());
@@ -210,7 +165,7 @@ contract Voting {
 	}
 
 	// 初始化投票信息
-	function initVoteInfo(address _voterAddress) public {
+	function initVoteInfo(address _voterAddress) private {
 		if (voterInfo[_voterAddress].tokensUsedPerCandidate.length == 0) {
 			voterAddresses.push(_voterAddress);
 			for (uint i = 0; i < candidateList.length; i++) {

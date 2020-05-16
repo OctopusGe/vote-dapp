@@ -124,7 +124,12 @@ function getUserInfo(ethAddress, contractAddr, callback) {
 // 由用户调用，上传数据
 function firstVote(voteData, privateKey, contractAddr, callback) {
     let userContract = new web3.eth.Contract(contractTool.userContractAbi, contractAddr);
-
+    console.log(voteData);
+    // let candidateList = [];
+    // voteData.candidateList.forEach(candidate => {
+    //    candidateList.push(web3.utils.utf8ToHex(candidate));
+    // });
+    // console.log(candidateList);
     // 通过私钥获得账户
     let account = web3.eth.accounts.privateKeyToAccount(privateKey);
     // 构造一个原生交易
@@ -132,8 +137,8 @@ function firstVote(voteData, privateKey, contractAddr, callback) {
         to: contractAddr,
         gasLimit: 546157,
         value: 0,
-        data: userContract.methods.firstVote(voteData.voteAddress, voteData.owner, voteData.candidateList.map(x => web3.utils.asciiToHex(x)),
-            web3.utils.asciiToHex(voteData.candidate),voteData.votes).encodeABI()  // 为指定的合约方法进行ABI编码
+        data: userContract.methods.firstVote(voteData.voteAddress, voteData.owner, voteData.candidateList.map(x => web3.utils.utf8ToHex(x)),
+            web3.utils.utf8ToHex(voteData.candidate),voteData.votes).encodeABI()  // 为指定的合约方法进行ABI编码
     };
     // 对原生交易进行签名并发送
     account.signTransaction(tx).then(function (result) {
@@ -158,13 +163,14 @@ function addVoteData(voteData, privateKey, contractAddr, callback) {
         to: contractAddr,
         gasLimit: 546157,
         value: 0,
-        data: userContract.methods.addVoteData(voteData.voteAddress, web3.utils.asciiToHex(voteData.candidate),voteData.votes).encodeABI()  // 为指定的合约方法进行ABI编码
+        data: userContract.methods.addVoteData(voteData.voteAddress, web3.utils.utf8ToHex(voteData.candidate),voteData.votes).encodeABI()  // 为指定的合约方法进行ABI编码
     };
     // 对原生交易进行签名并发送
     account.signTransaction(tx).then(function (result) {
         web3.eth.sendSignedTransaction(result.rawTransaction.toString('hex')).then(function () {
             callback(1)
-        }, function () {
+        }, function (msg) {
+            console.log(msg);
             callback(0)
         })
     }, function () {
@@ -177,6 +183,8 @@ function isVoted(ethAddress, voteAddress, contractAddr, callback) {
     let userContract = new web3.eth.Contract(contractTool.userContractAbi, contractAddr);
 
     userContract.methods.isVoted(ethAddress, voteAddress).call().then(function (result) {
+        console.log("投票状态:");
+        console.log(result);
         callback(1, result)
     }, function () {
         callback(0)

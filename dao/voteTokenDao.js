@@ -16,7 +16,7 @@ function insert(params, callback){
 }
 
 function deleteByVoteAddressAndUserAddress(params, callback){
-    let sql_delete = "delete from vote_token where vote_address = ? and user_address = ?";
+    let sql_delete = "delete from vote_token where voteAddress = ? and userAddress = ?";
     conn.query(sql_delete, params, function(err, result){
         if(err){
             console.log('[DELETE ERROR] - ',err.message);
@@ -28,13 +28,26 @@ function deleteByVoteAddressAndUserAddress(params, callback){
     })
 }
 
-function updateByVoteAddressAndUserAddress(params, callback){
-    let sql_update = "update vote_token set ? where vote_address = ? and user_address = ?";
+function updateByPrimaryKey(params, callback){
+    let sql_update = "update vote_token set ? where id = ?";
     conn.query(sql_update, params, function(err, result){
         if(err){
             console.log('[UPDATE ERROR] - ',err.message);
-            callback(0)
-            return;;
+            callback(0);
+            return;
+        }
+        console.log("修改成功~");
+        callback(1)
+    })
+}
+
+function updateByVoteAddressAndUserAddress(params, callback){
+    let sql_update = "update vote_token set ? where voteAddress = ? and userAddress = ?";
+    conn.query(sql_update, params, function(err, result){
+        if(err){
+            console.log('[UPDATE ERROR] - ',err.message);
+            callback(0);
+            return;
         }
         console.log("修改成功~");
         callback(1)
@@ -42,7 +55,7 @@ function updateByVoteAddressAndUserAddress(params, callback){
 }
 
 function findByVoteAddressAndUserAddress(params, callback){
-    let sql_select = "select * from vote_token where vote_address = ? and user_address = ?";
+    let sql_select = "select * from vote_token where voteAddress = ? and userAddress = ?";
     conn.query(sql_select, params, function(err, result){
         if(err){
             console.log('[FIND ERROR] - ',err.message);
@@ -57,6 +70,7 @@ function findByVoteAddressAndUserAddress(params, callback){
 module.exports = {
     insert,
     deleteByVoteAddressAndUserAddress,
+    updateByPrimaryKey,
     updateByVoteAddressAndUserAddress,
     findByVoteAddressAndUserAddress
 };

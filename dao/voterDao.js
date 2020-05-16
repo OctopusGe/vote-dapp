@@ -28,8 +28,21 @@ function deleteByPrimaryKey(params, callback){
     })
 }
 
+function updateByPrimaryKey(params, callback){
+    let sql_update = "update voter set ? where id = ?";
+    conn.query(sql_update, params, function(err, result){
+        if(err){
+            console.log('[UPDATE ERROR] - ',err.message);
+            callback(0)
+            return;
+        }
+        console.log("修改成功~");
+        callback(1)
+    })
+}
+
 function updateByVoterAddressAndVoteAddressAndCandidate(params, callback){
-    let sql_update = "update voter set ? where voter_address = ? and vote_address and candidate = ?";
+    let sql_update = "update voter set ? where voterAddress = ? and voteAddress and candidate = ?";
     conn.query(sql_update, params, function(err, result){
         if(err){
             console.log('[UPDATE ERROR] - ',err.message);
@@ -42,7 +55,7 @@ function updateByVoterAddressAndVoteAddressAndCandidate(params, callback){
 }
 
 function findByVoterAddressAndVoteAddressAndCandidate(params, callback){
-    let sql_select = "select * from voter where voter_address = ? and vote_address and candidate = ?";
+    let sql_select = "select * from voter where voterAddress = ? and voteAddress = ? and candidate = ?";
     conn.query(sql_select, params, function(err, result){
         if(err){
             console.log('[FIND ERROR] - ',err.message);
@@ -57,6 +70,7 @@ function findByVoterAddressAndVoteAddressAndCandidate(params, callback){
 module.exports = {
     insert,
     deleteByPrimaryKey,
+    updateByPrimaryKey,
     updateByVoterAddressAndVoteAddressAndCandidate,
     findByVoterAddressAndVoteAddressAndCandidate
 };
