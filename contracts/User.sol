@@ -22,7 +22,7 @@ contract User {
     // 用户信息
     User_Info  user;
 
-    address[] myVoteAddresses;
+    address[] votedAddresses;
 
     // 投票地址映射
     mapping(address => Voted_Data) votedData;
@@ -71,8 +71,8 @@ contract User {
         user.lastVoteTime = block.timestamp;
         user.voteProject += 1;
         user.voteCount += 1;
+        votedAddresses.push(_voteAddress);
         if (_owner == user.userAddress) {
-            myVoteAddresses.push(_voteAddress);
             user.myVoteCount += 1;
             user.lastCreateVoteTime = block.timestamp;
         }
@@ -113,9 +113,9 @@ contract User {
     }
 
     // 获取本用户发布的投票合约地址
-    function getMyVoteAddresses(address _userAddress) public view returns (address[] memory _voteAddressList) {
+    function getVotedAddresses(address _userAddress) public view returns (address[] memory _votedAddressList) {
         require(user.userAddress == _userAddress, "没有权限");
-        return myVoteAddresses;
+        return votedAddresses;
     }
 
     function()external payable{}

@@ -167,7 +167,7 @@ function buyTokens(tokenValue, privateKey, contractAddr, callback) {
     let tx = {
         to: contractAddr,
         gasLimit: 546157,
-        value: web3.utils.toWei(tokenValue, 'ether'),
+        value: web3.utils.toWei(tokenValue.toString(), 'ether'),
         data: voteContract.methods.buyTokens().encodeABI()  // 为指定的合约方法进行ABI编码
     };
 

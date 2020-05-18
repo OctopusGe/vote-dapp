@@ -203,11 +203,11 @@ function getVoteData(ethAddress, voteAddress, contractAddr, callback) {
 }
 
 // 获取投票数据
-function getMyVoteAddresses(ethAddress, contractAddr, callback) {
+function getVotedAddresses(ethAddress, contractAddr, callback) {
     let userContract = new web3.eth.Contract(contractTool.userContractAbi, contractAddr);
 
-    userContract.methods.getMyVoteAddresses(ethAddress).call().then(function (result) {
-        callback(1, result)
+    userContract.methods.getVotedAddresses(ethAddress).call().then(function (result) {
+        callback(1, result);
     }, function () {
         callback(0)
     });
@@ -254,7 +254,7 @@ module.exports = {
     addVoteData,
     isVoted,
     getVoteData,
-    getMyVoteAddresses,
+    getVotedAddresses,
     transfer,
     getBalance
 };

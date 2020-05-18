@@ -24,10 +24,10 @@ function login(req, callback) {
                 delete result[0].password;
                 delete result[0].contractAddr;
                 delete result[0].createTime;
-                delete result[0].voteCount;
-                delete result[0].myVoteCount;
-                delete result[0].lastVoteTime;
-                delete result[0].lastCreateVoteTime;
+                //delete result[0].voteCount;
+                //delete result[0].myVoteCount;
+                //delete result[0].lastVoteTime;
+                //delete result[0].lastCreateVoteTime;
                 obj._data.userInfo = result[0];
                 console.log(obj._data.token);
                 callback(obj)
@@ -259,40 +259,15 @@ async function vote(req, callback) {
                                                 console.log("6");
                                                 if (1 === status4) {
                                                     console.log("7");
-                                                    dao.voterDao.findByVoterAddressAndVoteAddressAndCandidate([result[0].contractAddr,
-                                                        voteInfo[0].contractAddress, req.body.candidate], (status5, result5) => {
-                                                        console.log("8");
-                                                        if (1 === status5) {
-                                                            console.log("9");
-                                                            if (result5[0]) {
-                                                                console.log("10");
-                                                                let voterParams = {votes: (result5[0].votes + req.body.votes)};
-                                                                dao.voterDao.updateByPrimaryKey([voterParams, result5[0].id], status6 => {
-                                                                    console.log("11");
-                                                                    if (1 === status6) {
-                                                                        console.log("更新投票者表数据成功~~");
-                                                                    } else {
-                                                                        console.log("更新投票者表数据失败~~");
-                                                                    }
-                                                                })
-                                                            } else {
-                                                                console.log("12");
-                                                                let voterParams = {
-                                                                    voterAddress: result[0].contractAddr,
-                                                                    voteAddress: voteInfo[0].contractAddress,
-                                                                    candidate: req.body.candidate,
-                                                                    votes: req.body.votes,
-                                                                    createTime: dateUtil.format(new Date(), "-")
-                                                                };
-                                                                dao.voterDao.insert(voterParams, status7 => {
-                                                                });
-                                                                console.log("给用户合约添加投票数据成功~~");
-                                                            }
-                                                        } else {
-                                                            console.log("查找投票者表数据失败~~");
-                                                        }
-                                                    });
-                                                    console.log("给用户合约添加投票数据成功~~");
+                                                    let voterParams = {
+                                                        voterAddress: result[0].ethAddress,
+                                                        voteAddress: voteInfo[0].contractAddress,
+                                                        candidate: req.body.candidate,
+                                                        votes: req.body.votes,
+                                                        createTime: dateUtil.format(new Date(), "-")
+                                                    };
+                                                    // 更新或者插入投票者数据
+                                                    dao.voterDao.insert1(voterParams, status5 => {});
                                                     obj._code = '200';
                                                     obj._msg = '投票成功';
                                                     obj._data = {};
@@ -307,11 +282,6 @@ async function vote(req, callback) {
                                             });
                                         } else {
                                             console.log("13");
-                                            //voteData.candidateList = await getCandidateList(req.body.voteAddress);
-                                            // getCandidateList(req.body.voteAddress).then(candidateList => {
-                                            //     voteData.candidateList = candidateList;
-                                            // });
-                                            // voteData.candidateList.push("s");
                                             voteData.owner = voteInfo[0].ownerAddress;
                                             dao.candidateDao.findByVoteAddress(voteInfo[0].contractAddress,(status4, result4) => {
                                                 if (1 === status4 && result4) {
@@ -325,7 +295,7 @@ async function vote(req, callback) {
                                                         if (1 === status5) {
                                                             console.log("15");
                                                             let voterParams = {
-                                                                voterAddress: result[0].contractAddr,
+                                                                voterAddress: result[0].ethAddress,
                                                                 voteAddress: voteInfo[0].contractAddress,
                                                                 candidate: req.body.candidate,
                                                                 votes: req.body.votes,
@@ -423,16 +393,52 @@ function updateUserInfo(req, callback) {
 }
 
 // 获取用户发布的投票
-function getUserVote(req, callback) {
+function getUserVoted(req, callback) {
     if (req.body && req.body.verify && req.body.verify.id) {
         dao.userDao.findByPrimaryKey(req.body.verify.id, function (status, result) {
             if (1 === status && result[0]) {
-                dao.userEthDao.getMyVoteAddresses(result[0].ethAddress, result[0].contractAddr,function (status2, result2) {
-                    if (1 === status2 && result2[0]) {
-                        obj._code = '200';
-                        obj._msg = '查询成功';
-                        obj._data = result2[0];
-                        callback(obj)
+                dao.userEthDao.getVotedAddresses(result[0].ethAddress, result[0].contractAddr,function (status2, result2) {
+                    if (1 === status2 && result2) {
+                        console.log("result2.length:");
+                        console.log(result2.length);
+                        let addressesParams = {
+                            addressList : result2,
+                            pageNo : 0,
+                            pageSize : 0
+                        };
+                        if (req.body.pageNo !== null && req.body.pageNo !== undefined && req.body.pageNo !== "") {
+                            addressesParams.pageNo = parseInt(req.body.pageNo);
+                            console.log("1");
+                        } else {
+                            addressesParams.pageNo = 1;
+                        }
+                        if (req.body.pageSize !== null && req.body.pageSize !== undefined && req.body.pageSize !== "") {
+                            addressesParams.pageSize = parseInt(req.body.pageSize);
+                            console.log("2");
+                        } else {
+                            addressesParams.pageSize = result2.length;
+                        }
+                        let totalSize = result2.length;
+                        dao.voteDao.findByContractAddressList(addressesParams, (status3, result3) => {
+                            if (1 === status3 && result3) {
+                                obj._data = {
+                                    totalSize: totalSize,
+                                    totalPage: (totalSize % addressesParams.pageSize) === 0 ?
+                                        totalSize / addressesParams.pageSize : Math.ceil(totalSize / addressesParams.pageSize),
+                                    pageNo: addressesParams.pageNo,
+                                    pageSize: addressesParams.pageSize,
+                                    voteInfoList: result3
+                                };
+                                obj._code = '200';
+                                obj._msg = '查询成功';
+                                callback(obj)
+                            } else {
+                                obj._code = '201';
+                                obj._msg = '查询失败';
+                                obj._data = {};
+                                callback(obj)
+                            }
+                        });
                     } else {
                         obj._code = '201';
                         obj._msg = '查询失败';
@@ -488,6 +494,7 @@ module.exports = {
     login,
     register,
     getUserInfo,
+    getUserVoted,
     vote,
     getBalance
 };

@@ -8,6 +8,7 @@ module.exports = function(app){
   app.use('/api/user/vote', require('./user/vote'));
   app.use('/api/user/getBalance', require('./user/getBalance'));
   app.use('/api/user/getUserInfo', require('./user/getUserInfo'));
+  app.use('/api/user/getUserVoted', require('./user/getUserVoted'));
   app.use('/register', require('./user/register2'));
   // app.use('/api/user/register', require('./users/register'))
   // app.use('/api/user/getUserInfo', require('./users/getUserInfo'))
@@ -17,6 +18,7 @@ module.exports = function(app){
   app.use('/api/vote/createVote', require('./vote/createVote'));
   app.use('/api/vote/getVoteInfo', require('./vote/getVoteInfo'));
   app.use('/api/vote/buyToken', require('./vote/buyToken'));
+  app.use('/api/vote/getVoteInfoList', require('./vote/getVoteInfoList'));
 
 
   /* common路由 */
