@@ -186,7 +186,8 @@ function isVoted(ethAddress, voteAddress, contractAddr, callback) {
         console.log("投票状态:");
         console.log(result);
         callback(1, result)
-    }, function () {
+    }, function (msg) {
+        console.log(msg)
         callback(0)
     });
 }

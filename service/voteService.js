@@ -110,13 +110,16 @@ function getVoteStatus(now, startTime, endTime) {
 }
 
 function getVoteInfo (req, callback) {
-    if (req.body && req.body.voteId && req.body.verify && req.body.verify.ethAddress) {
-        dao.voteDao.findByPrimaryKey(req.body.voteId, function (status, result) {
+    if (req.body && req.body.voteAddress && req.body.verify && req.body.verify.ethAddress) {
+        dao.voteDao.findByContractAddress(req.body.voteAddress, function (status, result) {
+            console.log(req.body.voteAddress);
             if (1 === status && result[0]) {
+                //console.log(result);
                 // 正在投票的详情
                 if (1 === result[0].voteStatus) {
                     dao.voteEthDao.getVoteInfo(result[0].voteType, result[0].contractAddress, (status1, result1) => {
                         if (1 === status1 && result1) {
+                            console.log(result1);
                             // 统计总票数
                             let totalVotes = 0;
                             for (let i = 0; i < result1.votesList.length; i++) {

@@ -92,7 +92,8 @@ function getVoteInfo(voteType, contractAddr, callback) {
                 totalVoter : result._totalVoters
             };
             callback(1, returnResult)
-        }, function () {
+        }, function (msg) {
+            console.log(msg);
             callback(0)
         });
     }
